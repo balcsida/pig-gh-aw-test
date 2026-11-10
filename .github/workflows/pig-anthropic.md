@@ -13,7 +13,7 @@ engine:
     XDG_RUNTIME_DIR: /tmp/gh-aw/pig-runtime  # the runner's /run/user/<uid> is not writable inside the AWF chroot
   # A custom executable has no npm SDK catalog, so gh-aw needs the model metadata here.
   config: |
-    {"model": {"api": "anthropic-messages", "reasoning": true, "input": ["text", "image"], "contextWindow": 1000000, "maxTokens": 128000}}
+    {"model": {"api": "anthropic-messages", "compat": {"forceAdaptiveThinking": true}, "reasoning": true, "input": ["text", "image"], "contextWindow": 1000000, "maxTokens": 128000}}
 steps:
   - name: Install PiG
     run: |
