@@ -9,6 +9,9 @@ engine:
   model: anthropic/claude-haiku-5-5
   env:
     PIG_VERSION_FORMAT: pi
+  # A custom executable has no npm SDK catalog, so gh-aw needs the model metadata here.
+  config: |
+    {"model": {"reasoning": true, "input": ["text", "image"], "contextWindow": 1000000, "maxTokens": 128000}}
 steps:
   - name: Install PiG
     run: |
