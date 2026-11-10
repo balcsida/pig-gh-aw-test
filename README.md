@@ -45,6 +45,43 @@ Why each setting is there:
 - `XDG_RUNTIME_DIR`. PiG runs extensions as subprocesses and puts their sockets under `$XDG_RUNTIME_DIR`. The runner's `/run/user/<uid>` is not writable inside the sandbox, so every extension fails to load with `mkdir /run/user: permission denied`.
 - `engine.config.model`. With stock Pi, gh-aw reads model metadata from the npm package. A custom executable has no such catalog, so the API, the thinking mode and the limits have to be written out per model. Without `forceAdaptiveThinking`, Anthropic rejects the request with `"thinking.type.enabled" is not supported for this model`.
 
+## Is it worth it?
+
+For most gh-aw users, no. Stock Pi is the supported path and needs no extra configuration. PiG gives the same agent behaviour with more setup. It pays off in two cases, and both are about control over what runs, not about speed.
+
+### Where PiG is better
+
+- One pinned binary. The workflow downloads one file and checks its SHA-256, where stock Pi is an npm install with a dependency tree. PiG's releases also ship Sigstore bundles and SBOMs.
+- Install time: 1s against 15s. On a job of about two minutes that is a small gain. The agent step was not faster (57s against 53s, one run each).
+
+### Where PiG is worse
+
+- gh-aw does not support it. Its docs say a custom `engine.command` has to satisfy the engine's contract itself, and the compiler's version pinning does not cover it. A gh-aw update can break it. I tested v1.0.1 only.
+- Model metadata is written by hand for every model (see `engine.config.model` above). A mistake there fails at the provider.
+- Three environment variables to make PiG look like Pi. One of them works around a PiG problem in the sandbox.
+- The SDK driver can't work with a Go binary. From reading gh-aw's scripts, sub-agents need the Pi npm package in some configurations too.
+- Node is still required, because gh-aw's own extensions are JavaScript.
+
+### What a Piglet adds
+
+A Piglet Binary fixes the agent's definition into one file: its tools, system prompt, extensions and skills.
+
+- The tool scope removes tools instead of denying calls. In the test the agent had no write tool, and `tool_search` did not find one. The scope goes with the binary into every workflow that uses it.
+- The agent is the same on a laptop and in CI, if you already run that Piglet locally.
+- A Piglet Binary can be signed, so a workflow can check who built it before it runs. I did not test signing.
+
+The costs:
+
+- It needs a build and release pipeline. Building in the workflow took about two minutes per run, and the binary is 69 MB.
+- Much of it overlaps with what gh-aw already has per workflow: tool restrictions, bare mode and `engine.extensions`.
+- Two traps, from PiG's docs and not tested here. A Piglet built with `build.closed` refuses `-e`, which gh-aw uses to load its own extensions. A Piglet with an `extensions:` section and no `pig-mcp-adapter` entry removes all MCP tools, and that would break safe outputs.
+
+### When I would use it
+
+With a Piglet, when one reviewed and signed agent definition should be shared across many workflows, or when the same Piglet already runs locally. Otherwise stock Pi.
+
+This rests on four runs with one simple prompt. It is not a benchmark.
+
 ## Not tested
 
 Sub-agents, `engine.extensions`, bare mode, persistent sessions, a restricted bash tool policy, and the SDK and RPC drivers (`engine.driver`). The SDK driver imports the Pi npm package, so I don't expect that one to work with a Go binary.
