@@ -7,14 +7,14 @@ permissions:
 engine:
   id: pi
   command: pig
-  model: copilot/claude-haiku-4.5
+  model: copilot/gpt-4.1
   env:
     PIG_VERSION_FORMAT: pi   # gh-aw requires `--version` >= 1.0.0; PiG prints 0.7.0+1.5.0 by default
     PIG_USE_PI_DIRS: "1"      # make PiG read PI_CODING_AGENT_DIR, where gh-aw writes models.json and settings.json
     XDG_RUNTIME_DIR: /tmp/gh-aw/pig-runtime  # the runner's /run/user/<uid> is not writable inside the AWF chroot
   # A custom executable has no npm SDK catalog, so gh-aw needs the model metadata here.
   config: |
-    {"model": {"reasoning": true, "input": ["text", "image"], "contextWindow": 200000, "maxTokens": 64000}}
+    {"model": {"reasoning": false, "input": ["text", "image"], "contextWindow": 128000, "maxTokens": 16384}}
 steps:
   - name: Install PiG
     run: |

@@ -6,6 +6,7 @@ permissions:
   copilot-requests: write
 engine:
   id: pi
+  model: copilot/gpt-4o-mini
 tools:
   bash: true
 safe-outputs:

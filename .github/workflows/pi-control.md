@@ -6,7 +6,7 @@ permissions:
   copilot-requests: write
 engine:
   id: pi
-  model: copilot/claude-haiku-4.5
+  model: copilot/gpt-4.1
 tools:
   bash: true
 safe-outputs:
