@@ -1,0 +1,8 @@
+name: gh-aw-smoke
+description: "Read-only repository reporter for GitHub Agentic Workflows"
+
+systemPrompt:
+  file: ./prompt.md
+
+# No edit or write: this agent only reads the repository and reports through safe outputs.
+tools: [read, bash]
