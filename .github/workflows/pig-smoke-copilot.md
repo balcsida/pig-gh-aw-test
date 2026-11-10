@@ -9,7 +9,7 @@ engine:
   command: pig
   env:
     PIG_VERSION_FORMAT: pi   # gh-aw requires `--version` >= 1.0.0; PiG prints 0.7.0+1.5.0 by default
-    PIG_USE_PI_DIRS: 1       # make PiG read PI_CODING_AGENT_DIR, where gh-aw writes models.json and settings.json
+    PIG_USE_PI_DIRS: "1"      # make PiG read PI_CODING_AGENT_DIR, where gh-aw writes models.json and settings.json
     XDG_RUNTIME_DIR: /tmp/gh-aw/pig-runtime  # the runner's /run/user/<uid> is not writable inside the AWF chroot
   # A custom executable has no npm SDK catalog, so gh-aw needs the model metadata here.
   config: |
