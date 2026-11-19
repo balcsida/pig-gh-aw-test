@@ -80,7 +80,7 @@ The costs:
 
 With a Piglet, when one reviewed and signed agent definition should be shared across many workflows, or when the same Piglet already runs locally. Otherwise stock Pi.
 
-This rests on eight runs with one simple prompt. It is not a benchmark.
+This rests on nine runs with one simple prompt. It is not a benchmark.
 
 ## Piglet traps
 
@@ -136,6 +136,36 @@ In the run the agent called `marker_ping`, found no write tool and created [#19]
 
 It needs one more setting. gh-aw's `pig install` step gets `PI_CODING_AGENT_DIR` but not `engine.env`, so `PIG_USE_PI_DIRS` has to be in the workflow's `env:` as well. Without it PiG ignores `PI_CODING_AGENT_DIR`, which I checked locally only, and installs the extension where the agent does not look.
 
+## PiG as an engine of its own
+
+gh-aw can also take an engine from a definition file. [`shared/pig.md`](.github/workflows/shared/pig.md) defines a `pig` engine with `engine.behaviors`, and [`pig-engine`](.github/workflows/pig-engine.md) imports it:
+
+```yaml
+imports:
+  - shared/pig.md
+engine:
+  id: pig
+  model: copilot/gpt-4.1
+```
+
+It works. The agent made the usual three tool calls and created [#22](https://github.com/balcsida/pig-gh-aw-test/issues/22) with `mcp__safeoutputs__create_issue`. The agent step took 33s.
+
+The definition is about 100 lines. Its harness script asks AWF for the inference endpoint, writes `models.json` and `mcp.json` into an agent dir of its own and starts `pig --print --mode json`. For the MCP config and the log summary it calls gh-aw's Pi scripts, because PiG reads and writes Pi's formats.
+
+What goes away, compared to `engine.command`:
+
+- `PIG_VERSION_FORMAT` and `PIG_USE_PI_DIRS`. There is no Pi contract to imitate.
+- The install step and the model metadata in every workflow. Both are in the definition.
+- gh-aw's seven `--extension` options. The harness passes none, so a closed Binary has nothing to refuse. I checked that locally only: the closed Binary starts with the harness's command line and reads `models.json`.
+
+What it costs:
+
+- gh-aw's Pi extensions go with those options: its tool policy, steering and sub-agents. The compiler warns that it ignores the workflow's `tools:` section for this engine, so `tools.edit: false` does nothing. The tool scope has to come from a Piglet.
+- The definition is mine to maintain, and it leans on three of gh-aw's internal scripts. gh-aw calls even its own sample definitions unsupported.
+- It has the limits of `gpt-4.1` only, and only the Copilot route.
+- Threat detection no longer follows the workflow's model. It ran Copilot with gh-aw's `detection` alias, which is `claude-haiku-5.5`, and this account can't use that model. So #22 starts with the detection warning. The workflow now sets `safe-outputs.threat-detection.engine.model`, and I have not run it again.
+- A closed Binary ignores the servers in `mcp.json` too. Locally, stock `pig` connected to the server in that file and the closed Binary did not. With a closed Piglet safe outputs would be left with the CLI again. [`pig-engine-closed`](.github/workflows/pig-engine-closed.md) is there to test that, and I have not run it yet.
+
 ## Not tested
 
 Sub-agents, `engine.extensions` with an npm or git source, bare mode, persistent sessions, a restricted bash tool policy, and the SDK and RPC drivers (`engine.driver`). The SDK driver imports the Pi npm package, so I don't expect that one to work with a Go binary.
@@ -146,4 +176,5 @@ The Piglet Binary is built on every run here, which takes about two minutes. A r
 
 - `copilot/claude-haiku-4.5` and the default `copilot/auto` were rejected with `model_not_supported` for stock Pi as well, so that is a limit of this account and not of PiG.
 - Issues #2 to #9, #14 and #15 were opened by gh-aw for the failed attempts on the way here.
+- #21 was opened by gh-aw when `pig-engine` ran into Copilot's rate limit (`429`) in three runs.
 - #19 and #20 start with a "threat detection engine error" warning. gh-aw's detection step runs the Copilot CLI, and that got `429 Too Many Requests` in both runs.

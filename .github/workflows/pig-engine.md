@@ -14,6 +14,11 @@ tools:
 safe-outputs:
   create-issue:
     max: 1
+  # With the PiG engine definition, detection runs Copilot with gh-aw's `detection` model alias, and this account can't use that model.
+  threat-detection:
+    engine:
+      id: copilot
+      model: gpt-4.1
 ---
 
 # PiG engine test
