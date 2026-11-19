@@ -74,13 +74,50 @@ The costs:
 
 - It needs a build and release pipeline. Building in the workflow took about two minutes per run, and the binary is 69 MB.
 - Much of it overlaps with what gh-aw already has per workflow: tool restrictions, bare mode and `engine.extensions`.
-- Two traps, from PiG's docs and not tested here. A Piglet built with `build.closed` refuses `-e`, which gh-aw uses to load its own extensions. A Piglet with an `extensions:` section and no `pig-mcp-adapter` entry removes all MCP tools, and that would break safe outputs.
+- Two traps, see [Piglet traps](#piglet-traps). A Piglet built with `build.closed` does not run under gh-aw at all. A Piglet with an `extensions:` section and no `pig-mcp-adapter` entry loses all MCP tools. Safe outputs then work only through gh-aw's CLI, and the agent step took 11 times as long.
 
 ### When I would use it
 
 With a Piglet, when one reviewed and signed agent definition should be shared across many workflows, or when the same Piglet already runs locally. Otherwise stock Pi.
 
-This rests on four runs with one simple prompt. It is not a benchmark.
+This rests on six runs with one simple prompt. It is not a benchmark.
+
+## Piglet traps
+
+PiG's docs describe two ways a Piglet can go wrong under gh-aw. I tested both, each with the Piglet of `pig-piglet` and one change to it.
+
+| Workflow | Change to the Piglet | Result |
+|---|---|---|
+| [`pig-piglet-closed`](.github/workflows/pig-piglet-closed.md) | [`build.closed: true`](piglet/gh-aw-closed.yaml) | the engine exits, [#17](https://github.com/balcsida/pig-gh-aw-test/issues/17) |
+| [`pig-piglet-ext`](.github/workflows/pig-piglet-ext.md) | an [`extensions:` section](piglet/gh-aw-ext.yaml) with no `pig-mcp-adapter` entry | no MCP tools, but [#18](https://github.com/balcsida/pig-gh-aw-test/issues/18) was created |
+
+### `build.closed`
+
+A closed Binary does not work as the engine. gh-aw passes seven `--extension` options, four for its own extensions and three for built-in ones, and the Binary refuses them. It exits with code 1 before the agent starts:
+
+```text
+pig: this Piglet Binary (gh-aw-closed) was built with build.closed: true, so it runs only what its signed closure lists and does not accept -e/--extension; rebuild its Piglet without build.closed to accept it, or use stock pig
+```
+
+gh-aw reports this as "engine driver crashed". Run locally, the Binary refuses `--extension builtin:mcp` in the same way as a file path.
+
+A Piglet for gh-aw therefore has to be an open Binary. PiG's security docs give their guarantees for closed Binaries only.
+
+### `extensions:` without `pig-mcp-adapter`
+
+The Piglet lists one extension of its own, [`marker`](piglet/extensions/marker/extension.go). Its `marker_ping` tool worked, and all MCP tools were gone, `mcp__github__*` as well as `mcp__safeoutputs__*`. `pig piglet show` gives the reason:
+
+```text
+MCP tools: hidden, because the Piglet lists `extensions:` but not `pig-mcp-adapter`
+```
+
+Safe outputs still worked. gh-aw also mounts its MCP servers as CLIs on `PATH`, and its prompt says so. The agent made 162 `tool_search` calls that found nothing, then ran `safeoutputs create_issue` with the bash tool. The run is green.
+
+The cost shows in the numbers. The agent step took 10m41s against 56s for `pig-piglet`, and used 69 AI credits against 4. Nothing in the run's log or in the agent artifact says that the Piglet hid the tools.
+
+This is one run with `gpt-4.1`. A Piglet without the bash tool has no way to the CLI, so I'd expect that one to fail.
+
+PiG's docs say that a `pig-mcp-adapter` entry in `extensions:` keeps the MCP tools. With it, `pig piglet show` no longer prints the line above. I did not run that Piglet in gh-aw.
 
 ## Not tested
 
