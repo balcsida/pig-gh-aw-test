@@ -80,7 +80,7 @@ The costs:
 
 With a Piglet, when one reviewed and signed agent definition should be shared across many workflows, or when the same Piglet already runs locally. Otherwise stock Pi.
 
-This rests on nine runs with one simple prompt. It is not a benchmark.
+This rests on ten workflows with one simple prompt. It is not a benchmark.
 
 ## Piglet traps
 
@@ -148,7 +148,7 @@ engine:
   model: copilot/gpt-4.1
 ```
 
-It works. The agent made the usual three tool calls and created [#22](https://github.com/balcsida/pig-gh-aw-test/issues/22) with `mcp__safeoutputs__create_issue`. The agent step took 33s.
+It works. The agent made the usual three tool calls and created [#23](https://github.com/balcsida/pig-gh-aw-test/issues/23) with `mcp__safeoutputs__create_issue`. The agent step took 44s.
 
 The definition is about 100 lines. Its harness script asks AWF for the inference endpoint, writes `models.json` and `mcp.json` into an agent dir of its own and starts `pig --print --mode json`. For the MCP config and the log summary it calls gh-aw's Pi scripts, because PiG reads and writes Pi's formats.
 
@@ -156,15 +156,15 @@ What goes away, compared to `engine.command`:
 
 - `PIG_VERSION_FORMAT` and `PIG_USE_PI_DIRS`. There is no Pi contract to imitate.
 - The install step and the model metadata in every workflow. Both are in the definition.
-- gh-aw's seven `--extension` options. The harness passes none, so a closed Binary has nothing to refuse. I checked that locally only: the closed Binary starts with the harness's command line and reads `models.json`.
+- gh-aw's seven `--extension` options. The harness passes none, so a closed Binary has nothing to refuse. [`pig-engine-closed`](.github/workflows/pig-engine-closed.md) runs the closed Piglet from the traps above as the engine, and it created [#24](https://github.com/balcsida/pig-gh-aw-test/issues/24).
 
 What it costs:
 
 - gh-aw's Pi extensions go with those options: its tool policy, steering and sub-agents. The compiler warns that it ignores the workflow's `tools:` section for this engine, so `tools.edit: false` does nothing. The tool scope has to come from a Piglet.
 - The definition is mine to maintain, and it leans on three of gh-aw's internal scripts. gh-aw calls even its own sample definitions unsupported.
 - It has the limits of `gpt-4.1` only, and only the Copilot route.
-- Threat detection no longer follows the workflow's model. It ran Copilot with gh-aw's `detection` alias, which is `claude-haiku-5.5`, and this account can't use that model. So #22 starts with the detection warning. The workflow now sets `safe-outputs.threat-detection.engine.model`, and I have not run it again.
-- A closed Binary ignores the servers in `mcp.json` too. Locally, stock `pig` connected to the server in that file and the closed Binary did not. With a closed Piglet safe outputs would be left with the CLI again. [`pig-engine-closed`](.github/workflows/pig-engine-closed.md) is there to test that, and I have not run it yet.
+- Threat detection no longer follows the workflow's model. It ran Copilot with gh-aw's `detection` alias, which is `claude-haiku-5.5`, and this account can't use that model. So the first run's issue, #22, starts with the detection warning. With `safe-outputs.threat-detection.engine.model` set in the workflow, detection ran on `gpt-4.1` again.
+- A closed Binary still has no MCP tools, because it ignores the servers in `mcp.json` as well. In `pig-engine-closed` PiG never connected to the MCP gateway, and the agent was left with the `safeoutputs` CLI again. Seven calls failed, six of them on shell quoting, and the eighth went through after the agent cut the issue body down. #24 has no `uname -a` output. The agent step took 2m35s and 7 AI credits, against 44s and 4.
 
 ## Not tested
 
