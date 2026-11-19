@@ -1,0 +1,12 @@
+name: gh-aw-ext
+description: "gh-aw-smoke with an extensions: section, to test that it removes gh-aw's MCP tools"
+
+systemPrompt:
+  file: ./prompt.md
+
+tools: [read, bash]
+
+# The trap under test: an extensions: section with no pig-mcp-adapter entry removes all MCP tools.
+extensions:
+  - name: marker
+    origins: [local:./extensions/marker]

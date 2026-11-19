@@ -1,0 +1,11 @@
+name: gh-aw-closed
+description: "gh-aw-smoke built closed, to test that it refuses gh-aw's --extension options"
+
+systemPrompt:
+  file: ./prompt.md
+
+tools: [read, bash]
+
+# The trap under test: a closed Binary refuses -e/--extension.
+build:
+  closed: true
