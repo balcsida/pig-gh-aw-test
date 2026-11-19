@@ -73,23 +73,24 @@ A Piglet Binary fixes the agent's definition into one file: its tools, system pr
 The costs:
 
 - It needs a build and release pipeline. Building in the workflow took about two minutes per run, and the binary is 69 MB.
-- Much of it overlaps with what gh-aw already has per workflow: tool restrictions, bare mode and `engine.extensions`.
+- Much of it overlaps with what gh-aw already has per workflow: tool restrictions, bare mode and `engine.extensions`. See [Without a Piglet](#without-a-piglet).
 - Two traps, see [Piglet traps](#piglet-traps). A Piglet built with `build.closed` does not run under gh-aw at all. A Piglet with an `extensions:` section and no `pig-mcp-adapter` entry loses all MCP tools. Safe outputs then work only through gh-aw's CLI, and the agent step took 11 times as long.
 
 ### When I would use it
 
 With a Piglet, when one reviewed and signed agent definition should be shared across many workflows, or when the same Piglet already runs locally. Otherwise stock Pi.
 
-This rests on six runs with one simple prompt. It is not a benchmark.
+This rests on eight runs with one simple prompt. It is not a benchmark.
 
 ## Piglet traps
 
-PiG's docs describe two ways a Piglet can go wrong under gh-aw. I tested both, each with the Piglet of `pig-piglet` and one change to it.
+PiG's docs describe two ways a Piglet can go wrong under gh-aw. I tested both, each with the Piglet of `pig-piglet` and one change to it, and then the fix for the second one.
 
 | Workflow | Change to the Piglet | Result |
 |---|---|---|
 | [`pig-piglet-closed`](.github/workflows/pig-piglet-closed.md) | [`build.closed: true`](piglet/gh-aw-closed.yaml) | the engine exits, [#17](https://github.com/balcsida/pig-gh-aw-test/issues/17) |
 | [`pig-piglet-ext`](.github/workflows/pig-piglet-ext.md) | an [`extensions:` section](piglet/gh-aw-ext.yaml) with no `pig-mcp-adapter` entry | no MCP tools, but [#18](https://github.com/balcsida/pig-gh-aw-test/issues/18) was created |
+| [`pig-piglet-mcp`](.github/workflows/pig-piglet-mcp.md) | the same section [with the entry](piglet/gh-aw-mcp.yaml) | MCP tools are back, [#20](https://github.com/balcsida/pig-gh-aw-test/issues/20) |
 
 ### `build.closed`
 
@@ -117,11 +118,27 @@ The cost shows in the numbers. The agent step took 10m41s against 56s for `pig-p
 
 This is one run with `gpt-4.1`. A Piglet without the bash tool has no way to the CLI, so I'd expect that one to fail.
 
-PiG's docs say that a `pig-mcp-adapter` entry in `extensions:` keeps the MCP tools. With it, `pig piglet show` no longer prints the line above. I did not run that Piglet in gh-aw.
+A `pig-mcp-adapter` entry in `extensions:` fixes it. With the entry, `pig piglet show` no longer prints the line above, and in `pig-piglet-mcp` the agent called `mcp__safeoutputs__create_issue` directly. The agent step took 56s and 4 AI credits again.
+
+## Without a Piglet
+
+Stock `pig` can do what the Piglet above does, with gh-aw's own settings. [`pig-ext`](.github/workflows/pig-ext.md) has no Piglet:
+
+| The Piglet has | `pig-ext` has |
+|---|---|
+| `tools: [read, bash]` | `tools.edit: false`. gh-aw then passes `--exclude-tools edit,write`. |
+| `systemPrompt` | the workflow body |
+| `extensions:` | `engine.extensions`. gh-aw runs `pig install` for each entry. |
+
+MCP needs nothing. gh-aw writes `mcp.json` into the agent dir and loads PiG's built-in MCP support with `--extension builtin:mcp`, as in every other run here.
+
+In the run the agent called `marker_ping`, found no write tool and created [#19](https://github.com/balcsida/pig-gh-aw-test/issues/19) with `mcp__safeoutputs__create_issue`. The agent step took 77s. It still wrote `scratch.txt` with bash, and nothing stops that in the Piglet either.
+
+It needs one more setting. gh-aw's `pig install` step gets `PI_CODING_AGENT_DIR` but not `engine.env`, so `PIG_USE_PI_DIRS` has to be in the workflow's `env:` as well. Without it PiG ignores `PI_CODING_AGENT_DIR`, which I checked locally only, and installs the extension where the agent does not look.
 
 ## Not tested
 
-Sub-agents, `engine.extensions`, bare mode, persistent sessions, a restricted bash tool policy, and the SDK and RPC drivers (`engine.driver`). The SDK driver imports the Pi npm package, so I don't expect that one to work with a Go binary.
+Sub-agents, `engine.extensions` with an npm or git source, bare mode, persistent sessions, a restricted bash tool policy, and the SDK and RPC drivers (`engine.driver`). The SDK driver imports the Pi npm package, so I don't expect that one to work with a Go binary.
 
 The Piglet Binary is built on every run here, which takes about two minutes. A real setup would build it once and download it from a release.
 
@@ -129,3 +146,4 @@ The Piglet Binary is built on every run here, which takes about two minutes. A r
 
 - `copilot/claude-haiku-4.5` and the default `copilot/auto` were rejected with `model_not_supported` for stock Pi as well, so that is a limit of this account and not of PiG.
 - Issues #2 to #9, #14 and #15 were opened by gh-aw for the failed attempts on the way here.
+- #19 and #20 start with a "threat detection engine error" warning. gh-aw's detection step runs the Copilot CLI, and that got `429 Too Many Requests` in both runs.
