@@ -1,0 +1,13 @@
+name: gh-aw-mcp
+description: "gh-aw-ext with a pig-mcp-adapter entry, to test that it keeps gh-aw's MCP tools"
+
+systemPrompt:
+  file: ./prompt.md
+
+tools: [read, bash]
+
+# The fix under test: the pig-mcp-adapter entry keeps the MCP tools that gh-aw-ext loses.
+extensions:
+  - name: marker
+    origins: [local:./extensions/marker]
+  - name: pig-mcp-adapter
